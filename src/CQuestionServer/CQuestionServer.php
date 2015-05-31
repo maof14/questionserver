@@ -9,6 +9,8 @@ class CQuestionServer {
 	private $adress = "localhost";
 	private $port = 8105;
 
+	private $games = array(); // store games.
+
 	/**
 	 *
 	 * Constructor.
@@ -17,7 +19,7 @@ class CQuestionServer {
 	 */
 	public function __construct($database) {
 		// init database for questions access later.
-		// $db = new CDatabase($database);
+		// $db = new CDatabase($database); // can't use on Mac
 	}
 
 	/**
@@ -99,9 +101,28 @@ class CQuestionServer {
 					if (!$buf = trim($buf)) {
 						continue;
 					}
+
+					// handle game start requests. 
+					$pattern = '/^(game\|)([a-z]+)/';
+					if(preg_match($pattern, $buf)) {
+						$target = explode('|', $buf);
+						$target = $target[1]; // str
+						foreach($this->users as $u) { // gå igenom users
+							if($u->getUsername() == $target) { // om $u (CUser) username = str target, ta den.
+								echo "träff"; // det blir ingen träff här. Alltså det är någonting som är helt jävla sinnessjukt med det här nu. 
+								// jag ger för i helvete upp tror jag. Och vad ska jag göra istället då. HAHahA FIttjävel. 
+								$target = $u;
+								break;
+							}
+						}
+						$players = array($client, $target);
+						echo gettype($client);
+						echo gettype($target);
+						$this->startGame($players);	
+					}
 					if ($buf == 'quit') {
-						unset($this->users[$key]);
 						$client->leave();
+						unset($this->users[$key]);
 						break;
 					}
 					if ($buf == 'shutdown') {
@@ -118,7 +139,7 @@ class CQuestionServer {
 						}
 					}
 					// print message on server. 
-					$date = date('H:m');
+					$date = date('H:i');
 					print $date . ": " . $broadcast; 
 				}
 			}
@@ -128,6 +149,10 @@ class CQuestionServer {
 		$this->close();
 	}
 	
+	public function startGame($users = array()) {
+		$this->games[] = new CGame($database, $users);
+	}
+
 	/**
 	 *
 	 * Function to close the main socket resource.
